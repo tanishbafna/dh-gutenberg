@@ -1,5 +1,6 @@
 import os
 from tqdm import tqdm
+import zipfile
 
 os.environ['GUTENBERG_MIRROR'] = "http://www.gutenberg.org/dirs/"
 
@@ -14,15 +15,40 @@ bookList = {
     'Madame Bovary': 2413
 }
 
-for key, values in tqdm(bookList.items()):
+FILE = 'corpus/'
 
-    text = strip_headers(load_etext(values)).strip()
-    
-    if 'html' in text:
-        print(f'Failed: {key}')
-        continue
+def downloadFunc(corpusContent):
 
-    with open(key + '.txt', 'w') as file:
-        file.write(text)
+    failed = list()
+
+    for key, values in tqdm(corpusContent.items()):
+
+        text = strip_headers(load_etext(values)).strip()
+        
+        if 'html' in text:
+            failed.append(key)
+            continue
+
+        with open(FILE + key + '.txt', 'w') as file:
+            file.write(text)
+        
+        text = None
     
-    text = None
+    if len(failed) == 0:
+        return None
+    else:
+        string = '\n'.join(failed)
+        return 'Failed:\n' + string
+
+def zipFunc(path):
+
+    zipf = zipfile.ZipFile('corpus.zip', 'w', zipfile.ZIP_DEFLATED)
+
+    for root, dirs, files in os.walk(path):
+        for file in files:
+            zipf.write(os.path.join(root, file), os.path.relpath(os.path.join(root, file), os.path.join(path, '..')))
+
+    return True
+
+print(downloadFunc(bookList))
+zipFunc(FILE)
